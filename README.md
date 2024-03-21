@@ -35,4 +35,13 @@ http://localhost:8000/preoperativos/
     ]
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+///////////********************INSTALACIÓN********************/////////////////////////////
+        python3 -m venv .env				//instalar el env para montar la el backend
+        pip install -r requirements.txt			//instalar todas las dependencias  
+        .env\Scripts\activate				//activar el ambiente 
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+///////////********************CORRER API********************/////////////////////////////
+        uvicorn main:app --reload
