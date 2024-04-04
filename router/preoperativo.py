@@ -18,8 +18,8 @@ def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[Emp
     try:
         # Insertar en la tabla preoperativos
         with conexion.cursor() as cursor:
-            sql_preopertativo = "INSERT INTO preoperativos (fecha, encargado, turno, lugar) VALUES (%s, %s, %s, %s)"
-            cursor.execute(sql_preopertativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar))
+            sql_preopertativo = "INSERT INTO preoperativos (fecha, encargado, turno, lugar, festivo) VALUES (%s, %s, %s, %s, %s)"
+            cursor.execute(sql_preopertativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo))
             conexion.commit()
             # Obtener el ID del registro insertado en preoperativos
             id_preoperativo = cursor.lastrowid
@@ -69,12 +69,12 @@ def obtener_registros():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Función para obtener un registro de preoperatorio por su ID junto con sus empleados preoperativos
+# Función para obtener un registro de preopetativo por su ID junto con sus empleados preoperativos
 @preoperativos.get("/idPreoperativos/{id}", response_model=Preoperativo)
 def obtener_registro_por_id(id: int):
     with conexion.cursor() as cursor:
-        sql_preoperatorio = "SELECT * FROM preoperativos WHERE id = %s"
-        cursor.execute(sql_preoperatorio, (id,))
+        sql_preopetativo = "SELECT * FROM preoperativos WHERE id = %s"
+        cursor.execute(sql_preopetativo, (id,))
         resultado = cursor.fetchone()
         if resultado is None:
             raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -88,14 +88,14 @@ def obtener_registro_por_id(id: int):
 
         return resultado
 
-# Función para actualizar un registro de preoperatorio por su ID junto con sus empleados preoperativos
+# Función para actualizar un registro de preopetativo por su ID junto con sus empleados preoperativos
 @preoperativos.put("/putPreoperativos/{id}", response_model=Preoperativo)
-def actualizar_registro(id: int, preoperatorio: Preoperativo, empleados_preoperativos: List[EmpleadoPreoperativo]):
+def actualizar_registro(id: int, preopetativo: Preoperativo, empleados_preoperativos: List[EmpleadoPreoperativo]):
     try:
         with conexion.cursor() as cursor:
             # Actualizar en la tabla preoperativos
-            sql_preoperatorio = "UPDATE preoperativos SET fecha = %s, encargado = %s, turno = %s, lugar = %s WHERE id = %s"
-            cursor.execute(sql_preoperatorio, (preoperatorio.fecha, preoperatorio.encargado, preoperatorio.turno, preoperatorio.lugar, id))
+            sql_preopetativo = "UPDATE preoperativos SET fecha = %s, encargado = %s, turno = %s, lugar = %s, festivo = %s WHERE id = %s"
+            cursor.execute(sql_preopetativo, (preopetativo.fecha, preopetativo.encargado, preopetativo.turno, preopetativo.lugar, preopetativo.festivo, id))
             conexion.commit()
 
             # Eliminar empleados preoperativos existentes para este registro
@@ -109,11 +109,11 @@ def actualizar_registro(id: int, preoperatorio: Preoperativo, empleados_preopera
                 cursor.execute(sql_empleado, (id, empleado.cedula, empleado.horas_diarias, empleado.horas_adicionales, empleado.estacion))
                 conexion.commit()
 
-            return preoperatorio
+            return preopetativo
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Función para eliminar un registro de preoperatorio por su ID junto con sus empleados preoperativos
+# Función para eliminar un registro de preopetativo por su ID junto con sus empleados preoperativos
 @preoperativos.delete("/deletePreoperativos/{id}", response_model=dict)
 def eliminar_registro(id: int):
     try:
@@ -123,9 +123,9 @@ def eliminar_registro(id: int):
             cursor.execute(sql_delete_empleados, (id,))
             conexion.commit()
 
-            # Eliminar el registro de preoperatorio
-            sql_delete_preoperatorio = "DELETE FROM preoperativos WHERE id = %s"
-            cursor.execute(sql_delete_preoperatorio, (id,))
+            # Eliminar el registro de preopetativo
+            sql_delete_preopetativo = "DELETE FROM preoperativos WHERE id = %s"
+            cursor.execute(sql_delete_preopetativo, (id,))
             conexion.commit()
 
             return {"message": "Registro eliminado con éxito"}
