@@ -9,6 +9,7 @@ from utils.dbConection import conexion
 
 empleados = APIRouter()
 
+#devolver los empleados por cargo por orden alfabético  
 @empleados.get("/getEmpleados/{cargo}", response_model=List[dict])
 def obtener_nombres_empleados_por_cargo(cargo: str):
     try:
@@ -17,7 +18,7 @@ def obtener_nombres_empleados_por_cargo(cargo: str):
             raise HTTPException(status_code=400, detail="Cargo inválido")
 
         with conexion.cursor() as cursor:
-            sql_empleados = "SELECT nombre, cedula FROM empleados WHERE cargo = %s"
+            sql_empleados = "SELECT nombre, cedula FROM empleados WHERE cargo = %s ORDER BY nombre" 
             cursor.execute(sql_empleados, (cargo,))
             resultados_empleados = cursor.fetchall()
             empleados = [{'nombre': empleado['nombre'], 'cedula': empleado['cedula']} for empleado in resultados_empleados]
