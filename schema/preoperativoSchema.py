@@ -1,4 +1,5 @@
 import datetime
+from xmlrpc.client import Boolean
 from pydantic import BaseModel
 
 class Preoperativo(BaseModel):
@@ -6,3 +7,4 @@ class Preoperativo(BaseModel):
     encargado: str
     turno: str
     lugar: str
+    festivo: Boolean
