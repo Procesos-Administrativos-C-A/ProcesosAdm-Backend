@@ -9,14 +9,14 @@ from pydantic import BaseModel
 
 
 fake_users_db = {
-    "johndoe": {
+    "1053874092": {
         "username": "johndoe",
         "full_name": "John Doe",
         "email": "johndoe@example.com",
         "hashed_password": "$2a$10$ct8kTwou4/5PMBT/RMENy.oN49WqN4NYPOfzMAD.TS0oU64PMQA7e",
         "disabled": False,
     },
-    "alice": {
+    "30318863": {
         "username": "alice",
         "full_name": "Alice Wonderson",
         "email": "alice@example.com",
@@ -77,9 +77,30 @@ def create_token(data: dict, user:UserInDB, time_expire: Union[datetime, None] =
     print (token_jwt)
     return token_jwt
 
+#verificar que el usuario que envio el tokent existe
+def get_user_current(user:UserInDB, token: str = Depends(oauth2_scheme)):
+    try:
+        token_decode = jwt.decode(token, user.hashed_password, algorithms=["HS256"])
+        username = token_decode.get("sub")
+        if username == None:
+            raise HTTPException(status_code=401, detail="Credenciales invalidas", headers={"WWW-authenticate": "Bearer"})
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Credenciales invalidas", headers={"WWW-authenticate": "Bearer"})
+    user= get_user(fake_users_db, username)
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciales invalidas", headers={"WWW-authenticate": "Bearer"})
+    return user
+
+#cuando se verifique el usuario siga siendo valido
+def get_user_disabled_current(user: User = Depends(get_user_current)):
+    if user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive User")
+    return user
+
 @login_router.get("/user/me")
-def user(token: str = Depends(oauth2_scheme)):
-    return token
+def user(user: User = Depends(get_user_disabled_current)):
+    print(user)
+    return user
 
 @login_router.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
