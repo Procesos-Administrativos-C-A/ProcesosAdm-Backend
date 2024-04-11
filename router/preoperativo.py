@@ -2,7 +2,7 @@ import sys
 
 from schema.empleadoPreoperativoSchema import EmpleadoPreoperativo
 sys.path.append("..")
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from utils.dbConection import conexion
 
 from typing import List
@@ -13,6 +13,9 @@ from typing import List
 
 preoperativos = APIRouter()
 
+'''Tareas pendiente '''
+#retornar aparte de (fecha, encargado, turno, lugar, festivo)que es de Preoperativos, y falta traer todos los empledos que estan relacionados a ese preoperativo(nombre, cargo, cedula, estacion, horas extra)
+#le falta horas extra, toca modificar la base de datos, en la tabla
 @preoperativos.post("/preoperativos/", response_model=Preoperativo)
 def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[EmpleadoPreoperativo]):
     try:
@@ -38,6 +41,30 @@ def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[Emp
             preoperativo_insertado = cursor.fetchone()
 
         return preoperativo_insertado
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Función para obtener los preoperativos por fecha
+@preoperativos.get("/preoperativos_por_fecha/", response_model=List[dict])
+def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usada para especificar que el parámetro fecha es requerido en la consulta y no puede ser omitido.
+    try:
+        with conexion.cursor() as cursor:
+            sql = "SELECT * FROM preoperativos WHERE fecha = %s"
+            cursor.execute(sql, (fecha,))
+            preoperativos = cursor.fetchall()
+
+            registros = []
+
+            for preoperativo in preoperativos:
+                sql_empleados = "SELECT * FROM empleados_preoperativos WHERE id_preoperativo = %s"
+                cursor.execute(sql_empleados, (preoperativo['id'],))
+                empleados = cursor.fetchall()
+                
+                preoperativo_dict = dict(preoperativo)
+                preoperativo_dict['empleados_preoperativos'] = empleados
+                registros.append(preoperativo_dict)
+
+            return registros
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
