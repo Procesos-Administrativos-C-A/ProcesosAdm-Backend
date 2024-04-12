@@ -7,6 +7,7 @@ class Empleado(BaseModel):
     rol: int
     cargo: str
     email: str
+    contraseña: str
 
 class EmpleadosList(BaseModel):
     empleados: List[Empleado]

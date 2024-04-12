@@ -4,7 +4,8 @@ from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
 from router.preoperativo import preoperativos
-from services.login import login_router
+#from services.login import login_router
+from router.login import login_router
 from router.empleado import empleados
 
 app = FastAPI()
