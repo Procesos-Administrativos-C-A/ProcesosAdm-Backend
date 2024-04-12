@@ -97,23 +97,33 @@ def obtener_registros():
 
 
 # Función para obtener un registro de preoperativo por su ID junto con sus empleados preoperativos
-@preoperativos.get("/idPreoperativos/{id}", response_model=Preoperativo)
-def obtener_registro_por_id(id: int):
-    with conexion.cursor() as cursor:
-        sql_preoperativo = "SELECT * FROM preoperativos WHERE id = %s"
-        cursor.execute(sql_preoperativo, (id,))
-        resultado = cursor.fetchone()
-        if resultado is None:
-            raise HTTPException(status_code=404, detail="Registro no encontrado")
+@preoperativos.get("/preoperativos_por_id/{id}", response_model=dict)
+def obtener_preoperativos_por_id(id: int):
+    try:
+        with conexion.cursor() as cursor:
+            # Consulta SQL para obtener el preoperativo por su ID
+            sql_preoperativo = "SELECT * FROM preoperativos WHERE id = %s"
+            cursor.execute(sql_preoperativo, (id,))
+            resultado_preoperativo = cursor.fetchone()
+            
+            # Si no se encuentra el preoperativo, lanzar una excepción 404
+            if resultado_preoperativo is None:
+                raise HTTPException(status_code=404, detail="Preoperativo no encontrado")
 
-        sql_empleados = "SELECT * FROM empleados_preoperativos WHERE id_preoperativo = %s"
-        cursor.execute(sql_empleados, (id,))
-        empleados = cursor.fetchall()
-        resultado['empleados_preoperativos'] = empleados
+            # Consulta SQL para obtener los empleados preoperativos asociados al preoperativo por su ID
+            sql_empleados_preoperativos = "SELECT * FROM empleados_preoperativos WHERE id_preoperativo = %s"
+            cursor.execute(sql_empleados_preoperativos, (id,))
+            empleados_preoperativos = cursor.fetchall()
 
-        print(resultado)
+            # Construir el objeto de preoperativo con la lista de empleados preoperativos
+            preoperativo = dict(resultado_preoperativo)
+            preoperativo['empleados_preoperativos'] = empleados_preoperativos
 
-        return resultado
+            return preoperativo
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 # Función para actualizar un registro de preoperativo por su ID junto con sus empleados preoperativos
 @preoperativos.put("/putPreoperativos/{id}", response_model=Preoperativo)
