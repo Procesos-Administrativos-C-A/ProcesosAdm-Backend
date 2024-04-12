@@ -16,7 +16,7 @@ preoperativos = APIRouter()
 '''Tareas pendiente '''
 #retornar aparte de (fecha, encargado, turno, lugar, festivo)que es de Preoperativos, y falta traer todos los empledos que estan relacionados a ese preoperativo(nombre, cargo, cedula, estacion, horas extra)
 #le falta horas extra, toca modificar la base de datos, en la tabla
-@preoperativos.post("/preoperativos/", response_model=Preoperativo)
+@preoperativos.post("/preoperativos/", response_model=dict)
 def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[EmpleadoPreoperativo]):
     try:
         # Insertar en la tabla preoperativos
@@ -40,7 +40,8 @@ def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[Emp
             cursor.execute(sql_get_preoperativo, (id_preoperativo,))
             preoperativo_insertado = cursor.fetchone()
 
-        return preoperativo_insertado
+        preoperativo_dict = dict(preoperativo_insertado)
+        return preoperativo_dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -111,9 +112,17 @@ def obtener_preoperativos_por_id(id: int):
                 raise HTTPException(status_code=404, detail="Preoperativo no encontrado")
 
             # Consulta SQL para obtener los empleados preoperativos asociados al preoperativo por su ID
-            sql_empleados_preoperativos = "SELECT * FROM empleados_preoperativos WHERE id_preoperativo = %s"
+            
+            sql_empleados_preoperativos = " SELECT ep.cedula, ep.horas_adicionales, ep.estacion, e.nombre, e.cargo FROM empleados_preoperativos ep INNER JOIN empleados e ON ep.cedula = e.cedula WHERE ep.id_preoperativo = %s"
             cursor.execute(sql_empleados_preoperativos, (id,))
             empleados_preoperativos = cursor.fetchall()
+
+            resultado_preoperativo["horas_extra"] = 0
+            for empleado in empleados_preoperativos:
+                if empleado["horas_adicionales"] > 0:
+                    resultado_preoperativo["horas_extra"] = 1
+                    break
+                    
 
             # Construir el objeto de preoperativo con la lista de empleados preoperativos
             preoperativo = dict(resultado_preoperativo)
