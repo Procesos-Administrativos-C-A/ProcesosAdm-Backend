@@ -84,21 +84,38 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
         # Llama a la función de obtener preoperativos por fecha para obtener los datos necesarios
         preoperativos = obtener_preoperativos_por_fecha(fecha)
         
-        # Aquí comienzas a generar el archivo PDF utilizando los datos obtenidos
+        # Inicializa el lienzo del PDF
         pdf_canvas = canvas.Canvas("preoperativos_por_fecha.pdf")
-
-        # Agrega los datos al PDF
+        
+        # Define la posición inicial para escribir en el PDF
+        y_position = 800
+        
+        # Itera sobre cada preoperativo y sus empleados
         for preoperativo in preoperativos:
-            pdf_canvas.drawString(100, 800, f"ID: {preoperativo['id']}")
-            pdf_canvas.drawString(100, 780, f"Fecha: {preoperativo['fecha']}")
-            pdf_canvas.drawString(100, 760, f"Encargado: {preoperativo['encargado']}")
+            # Agrega los detalles del preoperativo al PDF
+            pdf_canvas.drawString(100, y_position - 20, f"Fecha: {preoperativo['fecha']}")
+            pdf_canvas.drawString(100, y_position - 40, f"Encargado: {preoperativo['encargado']}")
+            pdf_canvas.drawString(100, y_position - 60, f"Turno: {preoperativo['turno']}")
+            pdf_canvas.drawString(100, y_position - 80, f"Lugar: {preoperativo['lugar']}")
+            pdf_canvas.drawString(100, y_position - 100, f"Festivo: {preoperativo['festivo']}")
             
+            # Agrega los detalles de los empleados preoperativos al PDF
+            y_position -= 120
+            for empleado in preoperativo['empleados_preoperativos']:
+                pdf_canvas.drawString(120, y_position - 20, f"Cédula: {empleado['cedula']}")
+                pdf_canvas.drawString(120, y_position - 40, f"Horas Diarias: {empleado['horas_diarias']}")
+                pdf_canvas.drawString(120, y_position - 60, f"Horas Adicionales: {empleado['horas_adicionales']}")
+                pdf_canvas.drawString(120, y_position - 80, f"Estación: {empleado['estacion']}")
+                y_position -= 100
+            
+            # Espacio entre preoperativos
+            y_position -= 20
+        
         # Guarda el PDF
         pdf_canvas.save()
         
         # Crea la respuesta del archivo PDF
-        pdf_name = "preoperativos_por_fecha.pdf" #cambiar el nombre despues 
-        #pdf_name = f"preoperativos_{fecha}.pdf" 
+        pdf_name = "preoperativos_por_fecha.pdf"
         pdf_path = Path.cwd() / pdf_name
         headers = {"Content-Disposition": f"attachment; filename={pdf_name}"}
         
