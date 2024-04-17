@@ -1,3 +1,4 @@
+from datetime import datetime
 import sys
 
 from schema.empleadoPreoperativoSchema import EmpleadoPreoperativo
@@ -14,6 +15,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from fastapi.responses import FileResponse
 from pathlib import Path
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
 #from fastapi.responses import StreamingResponse
 #from weasyprint import HTML, CSS
 #from tempfile import NamedTemporaryFile
@@ -84,11 +87,31 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
         # Llama a la función de obtener preoperativos por fecha para obtener los datos necesarios
         preoperativos = obtener_preoperativos_por_fecha(fecha)
         
-        # Inicializa el lienzo del PDF
-        pdf_canvas = canvas.Canvas("preoperativos_por_fecha.pdf")
+        # Obtiene la fecha actual en el formato deseado para el nombre del archivo
+        fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Define la posición inicial para escribir en el PDF
+        # Inicializa el lienzo del PDF con un nombre único basado en la fecha, turno y lugar
+        pdf_name = f"preoperativos_{fecha_actual}.pdf"
+        pdf_canvas = canvas.Canvas(pdf_name)
+        
+        # Define el título del encabezado
+        header_title = "Detalles de Preoperativos por Fecha"
+        
+        # Ajusta el tamaño de la fuente y la posición del título del encabezado
+        pdf_canvas.setFont("Helvetica-Bold", 16)
+        pdf_canvas.drawString(100, 850, header_title)
+        
+        # Dibuja una línea divisora debajo del título
+        pdf_canvas.line(100, 840, 500, 840)
+        
+        # Define la posición inicial para escribir en el PDF después del encabezado y la línea divisora
         y_position = 800
+        
+        # Aumenta el espacio entre el título y la tabla
+        y_position -= 60
+        
+        # Calcula la posición media de la página para colocar la tabla
+        middle_position = y_position - 300
         
         # Itera sobre cada preoperativo y sus empleados
         for preoperativo in preoperativos:
@@ -99,28 +122,42 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
             pdf_canvas.drawString(100, y_position - 80, f"Lugar: {preoperativo['lugar']}")
             pdf_canvas.drawString(100, y_position - 100, f"Festivo: {preoperativo['festivo']}")
             
-            # Agrega los detalles de los empleados preoperativos al PDF
-            y_position -= 120
+            # Dibuja la tabla de empleados preoperativos
+            table_data = [
+                ["Cedula", "Horas Diarias", "Horas Adicionales", "Estacion"]
+            ]
             for empleado in preoperativo['empleados_preoperativos']:
-                pdf_canvas.drawString(120, y_position - 20, f"Cédula: {empleado['cedula']}")
-                pdf_canvas.drawString(120, y_position - 40, f"Horas Diarias: {empleado['horas_diarias']}")
-                pdf_canvas.drawString(120, y_position - 60, f"Horas Adicionales: {empleado['horas_adicionales']}")
-                pdf_canvas.drawString(120, y_position - 80, f"Estación: {empleado['estacion']}")
-                y_position -= 100
+                table_data.append([
+                    str(empleado['cedula']),
+                    str(empleado['horas_diarias']),
+                    str(empleado['horas_adicionales']),
+                    empleado['estacion']
+                ])
+            
+            # Dibuja la tabla en el PDF
+            table = Table(table_data)
+            table.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+            ]))
+            
+            # Ajusta la posición de la tabla para que quede en la mitad de la página
+            table.wrapOn(pdf_canvas, 200, 400)
+            table.drawOn(pdf_canvas, 100, middle_position)
             
             # Espacio entre preoperativos
-            y_position -= 20
+            y_position -= 360
         
         # Guarda el PDF
         pdf_canvas.save()
         
         # Crea la respuesta del archivo PDF
-        pdf_name = "preoperativos_por_fecha.pdf"
-        pdf_path = Path.cwd() / pdf_name
         headers = {"Content-Disposition": f"attachment; filename={pdf_name}"}
-        
-        # Devuelve la respuesta del archivo PDF
-        return FileResponse(pdf_path, headers=headers, media_type="application/pdf")
+        return FileResponse(pdf_name, headers=headers, media_type="application/pdf")
     
     except Exception as e:
         # Manejo de errores
