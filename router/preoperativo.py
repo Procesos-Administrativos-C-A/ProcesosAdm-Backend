@@ -98,6 +98,7 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
         
         # Crea la respuesta del archivo PDF
         pdf_name = "preoperativos_por_fecha.pdf" #cambiar el nombre despues 
+        #pdf_name = f"preoperativos_{fecha}.pdf" 
         pdf_path = Path.cwd() / pdf_name
         headers = {"Content-Disposition": f"attachment; filename={pdf_name}"}
         
