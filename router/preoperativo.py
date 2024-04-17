@@ -2,13 +2,21 @@ import sys
 
 from schema.empleadoPreoperativoSchema import EmpleadoPreoperativo
 sys.path.append("..")
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, FastAPI
 from utils.dbConection import conexion
 
 from typing import List
 # Función para crear un registro de preoperativo junto con los empleados preoperativos
 from schema.preoperativoSchema import Preoperativo
-from typing import List
+
+#para el pdf
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from fastapi.responses import FileResponse
+from pathlib import Path
+#from fastapi.responses import StreamingResponse
+#from weasyprint import HTML, CSS
+#from tempfile import NamedTemporaryFile
 
 
 preoperativos = APIRouter()
@@ -68,6 +76,67 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
             return registros
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+#generar pdf por fecha
+@preoperativos.get("/generar_pdf_preoperativos_fecha/")
+def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
+    try:
+        # Llama a la función de obtener preoperativos por fecha para obtener los datos necesarios
+        preoperativos = obtener_preoperativos_por_fecha(fecha)
+        
+        # Aquí comienzas a generar el archivo PDF utilizando los datos obtenidos
+        pdf_canvas = canvas.Canvas("preoperativos_por_fecha.pdf")
+
+        # Agrega los datos al PDF
+        for preoperativo in preoperativos:
+            pdf_canvas.drawString(100, 800, f"ID: {preoperativo['id']}")
+            pdf_canvas.drawString(100, 780, f"Fecha: {preoperativo['fecha']}")
+            pdf_canvas.drawString(100, 760, f"Encargado: {preoperativo['encargado']}")
+            
+        # Guarda el PDF
+        pdf_canvas.save()
+        
+        # Crea la respuesta del archivo PDF
+        pdf_name = "preoperativos_por_fecha.pdf" #cambiar el nombre despues 
+        pdf_path = Path.cwd() / pdf_name
+        headers = {"Content-Disposition": f"attachment; filename={pdf_name}"}
+        
+        # Devuelve la respuesta del archivo PDF
+        return FileResponse(pdf_path, headers=headers, media_type="application/pdf")
+    
+    except Exception as e:
+        # Manejo de errores
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+    # # Obtener datos de los preoperativos por fecha
+    # preoperativos = obtener_preoperativos_por_fecha(fecha)
+
+    # # Generar HTML para el PDF
+    # html_content = "<h1>Preoperativos por Fecha</h1>"
+    # for preoperativo in preoperativos:
+    #     html_content += f"<h2>Fecha: {preoperativo['fecha']}</h2>"
+    #     html_content += f"<p>Encargado: {preoperativo['encargado']}</p>"
+    #     html_content += f"<p>Turno: {preoperativo['turno']}</p>"
+    #     html_content += f"<p>Lugar: {preoperativo['lugar']}</p>"
+    #     html_content += f"<p>Festivo: {preoperativo['festivo']}</p>"
+    #     html_content += "<table border='1'><tr><th>Cédula</th><th>Horas Diarias</th><th>Horas Adicionales</th><th>Estación</th></tr>"
+    #     for empleado in preoperativo['empleados_preoperativos']:
+    #         html_content += f"<tr><td>{empleado['cedula']}</td><td>{empleado['horas_diarias']}</td><td>{empleado['horas_adicionales']}</td><td>{empleado['estacion']}</td></tr>"
+    #     html_content += "</table>"
+
+    # # Renderizar HTML a PDF
+    # pdf_file = NamedTemporaryFile(delete=False)
+    # HTML(string=html_content).write_pdf(pdf_file.name)
+    # pdf_file.close()
+
+    # # Preparar la respuesta del archivo PDF
+    # headers = {
+    #     "Content-Disposition": f"attachment; filename=preoperativos_{fecha}.pdf"
+    # }
+
+    # # Devolver el archivo PDF como una respuesta de transmisión
+    # return StreamingResponse(open(pdf_file.name, "rb"), headers=headers, media_type="application/pdf")
 
 
 # Función para obtener todos los registros de preoperativo junto con sus empleados preoperativos
