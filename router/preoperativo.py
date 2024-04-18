@@ -24,16 +24,14 @@ from reportlab.lib import colors
 
 preoperativos = APIRouter()
 
-'''Tareas pendiente '''
-#retornar aparte de (fecha, encargado, turno, lugar, festivo)que es de Preoperativos, y falta traer todos los empledos que estan relacionados a ese preoperativo(nombre, cargo, cedula, estacion, horas extra)
-#le falta horas extra, toca modificar la base de datos, en la tabla
+
 @preoperativos.post("/preoperativos/", response_model=dict)
 def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[EmpleadoPreoperativo]):
     try:
         # Insertar en la tabla preoperativos
         with conexion.cursor() as cursor:
-            sql_preopertativo = "INSERT INTO preoperativos (fecha, encargado, turno, lugar, festivo) VALUES (%s, %s, %s, %s, %s)"
-            cursor.execute(sql_preopertativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo))
+            sql_preopertativo = "INSERT INTO preoperativos (fecha, encargado, turno, lugar, festivo, horas_extra) VALUES (%s, %s, %s, %s, %s, %s)"
+            cursor.execute(sql_preopertativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo, preoperativo.horas_extra))
             conexion.commit()
             # Obtener el ID del registro insertado en preoperativos
             id_preoperativo = cursor.lastrowid
@@ -45,6 +43,22 @@ def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[Emp
                 cursor.execute(sql_empleado, (id_preoperativo, empleado.cedula, empleado.horas_diarias, empleado.horas_adicionales, empleado.estacion))
                 conexion.commit()
 
+        # Crear un diccionario con los datos relevantes del preoperativo y empleados preoperativos
+        datos_preoperativos = {
+            "fecha": preoperativo.fecha,
+            "empleados_preoperativos": [
+                {
+                    "cedula": empleado.cedula,
+                    "horas_diarias": empleado.horas_diarias,
+                    "horas_adicionales": empleado.horas_adicionales,
+                    "estacion": empleado.estacion
+                } for empleado in empleados_preoperativos
+            ]
+        }
+
+        # Llamar a la función para insertar en la tabla horas_empleados
+        insertar_horas_empleados(datos_preoperativos, preoperativo.festivo, preoperativo.turno)
+
         # Recuperar el registro insertado con su ID
         with conexion.cursor() as cursor:
             sql_get_preoperativo = "SELECT * FROM preoperativos WHERE id = %s"
@@ -55,6 +69,63 @@ def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[Emp
         return preoperativo_dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+#ingresar datos en tabla horas_empleados
+def insertar_horas_empleados(datos_preoperativos, festivo, turno):
+    try:
+        with conexion.cursor() as cursor:
+            for empleado in datos_preoperativos["empleados_preoperativos"]:
+                # Definir las horas de acuerdo con las condiciones especificadas
+                if festivo:
+                    if turno == "turno 1":
+                        horas_diurnas_ord = 0
+                        horas_diurnas_fest = empleado["horas_diarias"]
+                        horas_nocturnas = 0
+                        horas_nocturnas_fest = 0
+                        horas_extras = empleado["horas_adicionales"]
+                    elif turno == "turno 2":
+                        horas_diurnas_ord = 0
+                        horas_diurnas_fest = 7
+                        horas_nocturnas = 0
+                        horas_nocturnas_fest = 1
+                        horas_extras = empleado["horas_adicionales"]
+                    elif turno == "turno 3":
+                        horas_diurnas_ord = 0
+                        horas_diurnas_fest = 0
+                        horas_nocturnas = 0
+                        horas_nocturnas_fest = empleado["horas_diarias"]
+                        horas_extras = empleado["horas_adicionales"]
+                else:
+                    if turno == "turno 1":
+                        horas_diurnas_ord = empleado["horas_diarias"]
+                        horas_diurnas_fest = 0
+                        horas_nocturnas = 0
+                        horas_nocturnas_fest = 0
+                        horas_extras = empleado["horas_adicionales"]
+                    elif turno == "turno 2":
+                        horas_diurnas_ord = 7
+                        horas_diurnas_fest = 0
+                        horas_nocturnas = 1
+                        horas_nocturnas_fest = 0
+                        horas_extras = empleado["horas_adicionales"]
+                    elif turno == "turno 3":
+                        horas_diurnas_ord = 0
+                        horas_diurnas_fest = 0
+                        horas_nocturnas = empleado["horas_diarias"]
+                        horas_nocturnas_fest = 0
+                        horas_extras = empleado["horas_adicionales"]
+
+                fecha = datos_preoperativos["fecha"]
+
+                # Insertar en la tabla horas_empleados
+                sql_horas_empleados = "INSERT INTO horas_empleados (cedula, horas_diurnas_ord, horas_diurnas_fest, horas_nocturnas, horas_nocturnas_fest, horas_extras, fecha) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(sql_horas_empleados, (empleado["cedula"], horas_diurnas_ord, horas_diurnas_fest, horas_nocturnas, horas_nocturnas_fest, horas_extras, fecha))
+                conexion.commit()
+    except Exception as e:
+        print("Error al insertar en la tabla horas_empleados:", str(e))
+
+
+
 
 # Función para obtener los preoperativos por fecha
 @preoperativos.get("/preoperativos_por_fecha/", response_model=List[dict])
