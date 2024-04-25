@@ -340,8 +340,8 @@ def actualizar_registro(id: int, preoperativo: Preoperativo, empleados_preoperat
     try:
         with conexion.cursor() as cursor:
             # Actualizar en la tabla preoperativos
-            sql_preoperativo = "UPDATE preoperativos SET fecha = %s, encargado = %s, turno = %s, lugar = %s, festivo = %s WHERE id = %s"
-            cursor.execute(sql_preoperativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo, id))
+            sql_preoperativo = "UPDATE preoperativos SET fecha = %s, encargado = %s, turno = %s, lugar = %s, festivo = %s, horas_extra = %s WHERE id = %s"
+            cursor.execute(sql_preoperativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo, preoperativo.horas_extra, id))
             conexion.commit()
 
             # Eliminar empleados preoperativos existentes para este registro
