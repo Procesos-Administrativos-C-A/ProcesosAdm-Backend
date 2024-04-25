@@ -68,7 +68,12 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
             registros = []
 
             for preoperativo in preoperativos:
-                sql_empleados = "SELECT * FROM empleados_preoperativos WHERE id_preoperativo = %s"
+                sql_empleados = """
+                                SELECT ep.id, ep.id_preoperativo, ep.cedula, ep.horas_diarias, ep.horas_adicionales, ep.estacion, e.nombre
+                                FROM empleados_preoperativos ep
+                                JOIN empleados e ON ep.cedula = e.cedula
+                                WHERE ep.id_preoperativo = %s
+                                """
                 cursor.execute(sql_empleados, (preoperativo['id'],))
                 empleados = cursor.fetchall()
                 
