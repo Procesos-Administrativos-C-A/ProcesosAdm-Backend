@@ -59,7 +59,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
         with conexion.cursor() as cursor:
             # Consulta SQL para obtener el consolidado de horas por empleado en el rango de fechas
             sql = """
-                SELECT e.nombre, e.apellidos, e.cedula,
+                SELECT CONCAT(e.nombre, ' ', e.apellidos) AS nombre_completo, e.cedula,
                     SUM(he.horas_diurnas_ord) AS horas_diurnas_ord,
                     SUM(he.horas_diurnas_fest) AS horas_diurnas_fest,
                     SUM(he.horas_nocturnas) AS horas_nocturnas,
@@ -68,7 +68,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
                 FROM empleados e
                 INNER JOIN horas_empleados he ON e.cedula = he.cedula
                 WHERE he.fecha BETWEEN %s AND %s
-                GROUP BY e.cedula, e.nombre, e.apellidos
+                GROUP BY e.cedula, nombre_completo
             """
             cursor.execute(sql, (fecha_inicio, fecha_fin))
             consolidado_horas = cursor.fetchall()
@@ -88,7 +88,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
             # Agregar datos a la tabla
             for empleado in consolidado_horas:
                 table_data.append([
-                    empleado['nombre'],
+                    empleado['nombre_completo'],  # Cambio de la columna 'nombre' a 'nombre_completo'
                     empleado['cedula'],
                     empleado['horas_diurnas_ord'],
                     empleado['horas_diurnas_fest'],
