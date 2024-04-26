@@ -313,7 +313,7 @@ def obtener_preoperativos_por_id(id: int):
 
             # Consulta SQL para obtener los empleados preoperativos asociados al preoperativo por su ID
             
-            sql_empleados_preoperativos = " SELECT ep.cedula, ep.horas_adicionales, ep.estacion, e.nombre, e.cargo FROM empleados_preoperativos ep INNER JOIN empleados e ON ep.cedula = e.cedula WHERE ep.id_preoperativo = %s"
+            sql_empleados_preoperativos = " SELECT ep.cedula, ep.horas_adicionales, ep.estacion, e.nombre, e.apellidos, e.cargo FROM empleados_preoperativos ep INNER JOIN empleados e ON ep.cedula = e.cedula WHERE ep.id_preoperativo = %s"
             cursor.execute(sql_empleados_preoperativos, (id,))
             empleados_preoperativos = cursor.fetchall()
 

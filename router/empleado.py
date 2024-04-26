@@ -13,7 +13,7 @@ empleados = APIRouter()
 @empleados.get("/getEmpleados/{cargo}", response_model=List[dict])
 def obtener_nombres_empleados_por_cargo(cargo: str):
     try:
-        cargos_validos = ["Jefe Sistemas", "Jefe Talento Humano", "Supervisor", "Operador", "Auxiliar de T & A", "Ingeniero MTTO", "Tecnico MTTO"]
+        cargos_validos = ["Jefe Sistemas", "Jefe Talento Humano", "Supervisor", "OPERADOR", "AUXILIAR DE ABORDAJE Y TAQUILLA", "INGENIERO DE MANTENIMIENTO", "TECNICO DE MANTENIMIENTO"]
         if cargo not in cargos_validos:
             raise HTTPException(status_code=400, detail="Cargo inválido")
 
@@ -40,7 +40,7 @@ def obtener_todos_empleados():
                 Empleado(
                     cedula=empleado["cedula"],
                     nombre=empleado["nombre"],
-                    nombre=empleado["apellidos"],
+                    apellidos=empleado["apellidos"],
                     rol=empleado["rol"],
                     cargo=empleado["cargo"],
                     email=empleado["email"],
