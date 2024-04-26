@@ -15,8 +15,7 @@ from reportlab.lib import colors
 from fastapi.responses import FileResponse
 
 #Excel
-import openpyxl
-from openpyxl.styles import Alignment, Font
+import pandas as pd
 
 horas_empleados_router = APIRouter()
 
@@ -127,77 +126,51 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
         # Manejo de errores
         raise HTTPException(status_code=500, detail=str(e))
     
-
-#Generación de Excel 
-@horas_empleados_router.get("/generar_excel_consolidado_horas/")
-async def generar_excel_consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Query(...)):
+@horas_empleados_router.get("/excel_horas_empleados/")
+async def generar_excel_horas_empleados(fecha_inicio: str = Query(...), fecha_fin: str = Query(...)):
     try:
         with conexion.cursor() as cursor:
-            # Consulta SQL para obtener el consolidado de horas por empleado en el rango de fechas
+            # Consulta SQL para obtener los registros de horas_empleados en el rango de fechas
             sql = """
-                SELECT e.nombre, e.cedula,
+                SELECT e.nombre, 
+                    he.cedula, 
                     SUM(he.horas_diurnas_ord) AS horas_diurnas_ord,
                     SUM(he.horas_diurnas_fest) AS horas_diurnas_fest,
                     SUM(he.horas_nocturnas) AS horas_nocturnas,
                     SUM(he.horas_nocturnas_fest) AS horas_nocturnas_fest,
                     SUM(he.horas_extras) AS horas_extras
-                FROM empleados e
-                INNER JOIN horas_empleados he ON e.cedula = he.cedula
+                FROM horas_empleados he
+                INNER JOIN empleados e ON e.cedula = he.cedula
                 WHERE he.fecha BETWEEN %s AND %s
-                GROUP BY e.cedula, e.nombre
+                GROUP BY he.cedula, e.nombre
             """
             cursor.execute(sql, (fecha_inicio, fecha_fin))
-            consolidado_horas = cursor.fetchall()
-            
-            if not consolidado_horas:
-                raise HTTPException(status_code=404, detail="No hay registros para las fechas especificadas.")
-            
-            # Nombre del archivo Excel basado en la fecha actual
-            excel_name = f"consolidado_horas_{fecha_inicio}_{fecha_fin}.xlsx"
-            
-            # Crear un nuevo libro de trabajo de Excel
-            wb = openpyxl.Workbook()
-            ws = wb.active
-            
-            # Definir los encabezados de las columnas
-            headers = ["Nombre", "Cedula", "Horas Diurnas Ord", "Horas Diurnas Fest", "Horas Nocturnas", "Horas Nocturnas Fest", "Horas Extras"]
-            ws.append(headers)
-            
-            # Agregar datos a las filas
-            for empleado in consolidado_horas:
-                ws.append([
-                    empleado['nombre'],
-                    empleado['cedula'],
-                    empleado['horas_diurnas_ord'],
-                    empleado['horas_diurnas_fest'],
-                    empleado['horas_nocturnas'],
-                    empleado['horas_nocturnas_fest'],
-                    empleado['horas_extras']
-                ])
-            
-            # Ajustar el ancho de las columnas
-            for col in ws.columns:
-                max_length = 0
-                column = col[0].column  # Get the column name
-                for cell in col:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(cell.value)
-                    except:
-                        pass
-                adjusted_width = (max_length + 2) * 1.2
-                ws.column_dimensions[column].width = adjusted_width
-            
-            # Guardar el archivo Excel
-            wb.save(excel_name)
-            
-            # Devolver el Excel como respuesta
+            registros = cursor.fetchall()
+
+            # Comprueba si hay registros
+            if not registros:
+                raise HTTPException(status_code=404, detail="No hay registros para el rango de fechas especificado.")
+
+            # Convertir los registros en una lista de diccionarios
+            registros_dict = [dict(row) for row in registros]
+
+            # Agregar el total de horas por cédula
+            for registro in registros_dict:
+                total_horas = sum(registro[key] for key in ['horas_diurnas_ord', 'horas_diurnas_fest', 'horas_nocturnas', 'horas_nocturnas_fest', 'horas_extras'])
+                registro['total_horas'] = total_horas
+
+            # Crear un DataFrame de Pandas con los registros obtenidos
+            df = pd.DataFrame(registros_dict)
+
+            # Nombre del archivo Excel basado en el rango de fechas
+            excel_name = f"horas_empleados_{fecha_inicio}_{fecha_fin}.xlsx"
+
+            # Guardar el DataFrame en un archivo Excel
+            df.to_excel(excel_name, index=False)
+
+            # Devolver el archivo Excel como respuesta
             return FileResponse(excel_name, filename=excel_name, media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        
-    except HTTPException as e:
-        # Devolver la excepción HTTP
-        raise e
-        
+
     except Exception as e:
-        # Manejo de otras excepciones
+        # Manejo de errores
         raise HTTPException(status_code=500, detail=str(e))

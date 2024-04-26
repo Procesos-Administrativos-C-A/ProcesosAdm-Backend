@@ -11,15 +11,13 @@ from typing import List
 from schema.preoperativoSchema import Preoperativo
 
 #para el pdf
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
 from fastapi.responses import FileResponse
-from pathlib import Path
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
-#from fastapi.responses import StreamingResponse
-#from weasyprint import HTML, CSS
-#from tempfile import NamedTemporaryFile
+from reportlab.platypus import Table, TableStyle
+from reportlab.lib.units import inch
 
 
 preoperativos = APIRouter()
@@ -155,7 +153,7 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
             return registros
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 #generar pdf por fecha
 @preoperativos.get("/generar_pdf_preoperativos_fecha/")
 def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
@@ -168,50 +166,41 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
         
         # Inicializa el lienzo del PDF con un nombre único basado en la fecha, turno y lugar
         pdf_name = f"preoperativos_{fecha_actual}.pdf"
-        pdf_canvas = canvas.Canvas(pdf_name)
+        doc = SimpleDocTemplate(pdf_name, pagesize=letter)
+        styles = getSampleStyleSheet()
         
-        # Define el título del encabezado
-        header_title = "Detalles de Preoperativos por Fecha"
+        # Crea una lista de elementos para agregar al PDF
+        pdf_elements = []
         
-        # Ajusta el tamaño de la fuente y la posición del título del encabezado
-        pdf_canvas.setFont("Helvetica-Bold", 16)
-        pdf_canvas.drawString(100, 850, header_title)
-        
-        # Dibuja una línea divisora debajo del título
-        pdf_canvas.line(100, 840, 500, 840)
-        
-        # Define la posición inicial para escribir en el PDF después del encabezado y la línea divisora
-        y_position = 800
-        
-        # Aumenta el espacio entre el título y la tabla
-        y_position -= 60
-        
-        # Calcula la posición media de la página para colocar la tabla
-        middle_position = y_position - 300
-        
-        # Itera sobre cada preoperativo y sus empleados
+        # Itera sobre cada preoperativo y agrega sus detalles al PDF
         for preoperativo in preoperativos:
-            # Agrega los detalles del preoperativo al PDF
-            pdf_canvas.drawString(100, y_position - 20, f"Fecha: {preoperativo['fecha']}")
-            pdf_canvas.drawString(100, y_position - 40, f"Encargado: {preoperativo['encargado']}")
-            pdf_canvas.drawString(100, y_position - 60, f"Turno: {preoperativo['turno']}")
-            pdf_canvas.drawString(100, y_position - 80, f"Lugar: {preoperativo['lugar']}")
-            pdf_canvas.drawString(100, y_position - 100, f"Festivo: {preoperativo['festivo']}")
+            # Agrega un salto de página antes de cada nuevo preoperativo (excepto para el primero)
+            if preoperativos.index(preoperativo) != 0:
+                pdf_elements.append(Spacer(1, 30))
             
-            # Dibuja la tabla de empleados preoperativos
-            table_data = [
-                ["Cedula", "Horas Diarias", "Horas Adicionales", "Estacion"]
-            ]
+            # Agrega los detalles del preoperativo al PDF
+            pdf_elements.append(Paragraph(f"<b>Fecha:</b> {preoperativo['fecha']}", styles["Normal"]))
+            pdf_elements.append(Paragraph(f"<b>Encargado:</b> {preoperativo['encargado']}", styles["Normal"]))
+            pdf_elements.append(Paragraph(f"<b>Turno:</b> {preoperativo['turno']}", styles["Normal"]))
+            pdf_elements.append(Paragraph(f"<b>Lugar:</b> {preoperativo['lugar']}", styles["Normal"]))
+            
+            # Ajusta la representación de "Festivo" a "Si" o "No"
+            festivo = "Si" if preoperativo['festivo'] else "No"
+            pdf_elements.append(Paragraph(f"<b>Festivo:</b> {festivo}", styles["Normal"]))
+            
+            # Agrega una tabla para los empleados preoperativos
+            table_data = [["Nombre", "Cedula", "Horas Diarias", "Horas Adicionales", "Estacion"]]
             for empleado in preoperativo['empleados_preoperativos']:
+                # Obtiene el nombre del empleado desde el diccionario de empleados
+                nombre_empleado = empleado.get('nombre', 'Nombre no disponible')
                 table_data.append([
+                    Paragraph(nombre_empleado, styles["Normal"]),  # Utiliza un Paragraph para permitir el ajuste automático del texto
                     str(empleado['cedula']),
                     str(empleado['horas_diarias']),
                     str(empleado['horas_adicionales']),
                     empleado['estacion']
                 ])
-            
-            # Dibuja la tabla en el PDF
-            table = Table(table_data)
+            table = Table(table_data, colWidths=[2*inch, 1*inch, 1*inch, 1*inch, 2*inch])  # Ajusta el ancho de la columna del nombre
             table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
@@ -220,16 +209,10 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
                 ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
                 ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
             ]))
-            
-            # Ajusta la posición de la tabla para que quede en la mitad de la página
-            table.wrapOn(pdf_canvas, 200, 400)
-            table.drawOn(pdf_canvas, 100, middle_position)
-            
-            # Espacio entre preoperativos
-            y_position -= 360
+            pdf_elements.append(table)
         
-        # Guarda el PDF
-        pdf_canvas.save()
+        # Agrega los elementos al documento PDF
+        doc.build(pdf_elements)
         
         # Crea la respuesta del archivo PDF
         headers = {"Content-Disposition": f"attachment; filename={pdf_name}"}
@@ -238,36 +221,6 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
     except Exception as e:
         # Manejo de errores
         raise HTTPException(status_code=500, detail=str(e))
-
-
-    # # Obtener datos de los preoperativos por fecha
-    # preoperativos = obtener_preoperativos_por_fecha(fecha)
-
-    # # Generar HTML para el PDF
-    # html_content = "<h1>Preoperativos por Fecha</h1>"
-    # for preoperativo in preoperativos:
-    #     html_content += f"<h2>Fecha: {preoperativo['fecha']}</h2>"
-    #     html_content += f"<p>Encargado: {preoperativo['encargado']}</p>"
-    #     html_content += f"<p>Turno: {preoperativo['turno']}</p>"
-    #     html_content += f"<p>Lugar: {preoperativo['lugar']}</p>"
-    #     html_content += f"<p>Festivo: {preoperativo['festivo']}</p>"
-    #     html_content += "<table border='1'><tr><th>Cédula</th><th>Horas Diarias</th><th>Horas Adicionales</th><th>Estación</th></tr>"
-    #     for empleado in preoperativo['empleados_preoperativos']:
-    #         html_content += f"<tr><td>{empleado['cedula']}</td><td>{empleado['horas_diarias']}</td><td>{empleado['horas_adicionales']}</td><td>{empleado['estacion']}</td></tr>"
-    #     html_content += "</table>"
-
-    # # Renderizar HTML a PDF
-    # pdf_file = NamedTemporaryFile(delete=False)
-    # HTML(string=html_content).write_pdf(pdf_file.name)
-    # pdf_file.close()
-
-    # # Preparar la respuesta del archivo PDF
-    # headers = {
-    #     "Content-Disposition": f"attachment; filename=preoperativos_{fecha}.pdf"
-    # }
-
-    # # Devolver el archivo PDF como una respuesta de transmisión
-    # return StreamingResponse(open(pdf_file.name, "rb"), headers=headers, media_type="application/pdf")
 
 
 # Función para obtener todos los registros de preoperativo junto con sus empleados preoperativos
