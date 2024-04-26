@@ -140,7 +140,7 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
 
             for preoperativo in preoperativos:
                 sql_empleados = """
-                                SELECT ep.id, ep.id_preoperativo, ep.cedula, ep.horas_diarias, ep.horas_adicionales, ep.estacion, e.nombre
+                                SELECT ep.id, ep.id_preoperativo, ep.cedula, ep.horas_diarias, ep.horas_adicionales, ep.estacion, e.nombre, e.apellidos
                                 FROM empleados_preoperativos ep
                                 JOIN empleados e ON ep.cedula = e.cedula
                                 WHERE ep.id_preoperativo = %s

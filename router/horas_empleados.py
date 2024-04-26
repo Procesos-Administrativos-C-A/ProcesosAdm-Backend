@@ -30,7 +30,7 @@ async def consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Que
         with conexion.cursor() as cursor:
             # Consulta SQL para obtener el consolidado de horas por empleado en el rango de fechas
             sql = """
-                SELECT e.nombre, e.cedula,
+                SELECT e.nombre, e.apellidos, e.cedula,
                     SUM(he.horas_diurnas_ord) AS horas_diurnas_ord,
                     SUM(he.horas_diurnas_fest) AS horas_diurnas_fest,
                     SUM(he.horas_nocturnas) AS horas_nocturnas,
@@ -40,7 +40,7 @@ async def consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Que
                 FROM empleados e
                 INNER JOIN horas_empleados he ON e.cedula = he.cedula
                 WHERE he.fecha BETWEEN %s AND %s
-                GROUP BY e.cedula, e.nombre
+                GROUP BY e.cedula, e.nombre, e.apellidos
             """
             cursor.execute(sql, (fecha_inicio, fecha_fin))
             consolidado_horas = cursor.fetchall()
@@ -60,7 +60,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
         with conexion.cursor() as cursor:
             # Consulta SQL para obtener el consolidado de horas por empleado en el rango de fechas
             sql = """
-                SELECT e.nombre, e.cedula,
+                SELECT e.nombre, e.apellidos, e.cedula,
                     SUM(he.horas_diurnas_ord) AS horas_diurnas_ord,
                     SUM(he.horas_diurnas_fest) AS horas_diurnas_fest,
                     SUM(he.horas_nocturnas) AS horas_nocturnas,
@@ -69,7 +69,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
                 FROM empleados e
                 INNER JOIN horas_empleados he ON e.cedula = he.cedula
                 WHERE he.fecha BETWEEN %s AND %s
-                GROUP BY e.cedula, e.nombre
+                GROUP BY e.cedula, e.nombre, e.apellidos
             """
             cursor.execute(sql, (fecha_inicio, fecha_fin))
             consolidado_horas = cursor.fetchall()
