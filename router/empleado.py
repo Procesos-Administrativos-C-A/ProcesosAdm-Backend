@@ -13,15 +13,15 @@ empleados = APIRouter()
 @empleados.get("/getEmpleados/{cargo}", response_model=List[dict])
 def obtener_nombres_empleados_por_cargo(cargo: str):
     try:
-        cargos_validos = ["Jefe Sistemas", "Jefe Talento Humano", "Supervisor", "Operador", "Auxiliar de T & A", "Ingeniero MTTO", "Tecnico MTTO"]
+        cargos_validos = ["Jefe Sistemas", "Jefe Talento Humano", "Supervisor", "OPERADOR", "AUXILIAR DE ABORDAJE Y TAQUILLA", "INGENIERO DE MANTENIMIENTO", "TECNICO DE MANTENIMIENTO"]
         if cargo not in cargos_validos:
             raise HTTPException(status_code=400, detail="Cargo inválido")
 
         with conexion.cursor() as cursor:
-            sql_empleados = "SELECT nombre, cedula FROM empleados WHERE cargo = %s ORDER BY nombre" 
+            sql_empleados = "SELECT nombre, apellidos, cedula FROM empleados WHERE cargo = %s ORDER BY nombre" 
             cursor.execute(sql_empleados, (cargo,))
             resultados_empleados = cursor.fetchall()
-            empleados = [{'nombre': empleado['nombre'], 'cedula': empleado['cedula']} for empleado in resultados_empleados]
+            empleados = [{'nombre': empleado['nombre'], 'apellidos': empleado['apellidos'], 'cedula': empleado['cedula']} for empleado in resultados_empleados]
             return empleados
 
     except Exception as e:
@@ -32,7 +32,7 @@ def obtener_nombres_empleados_por_cargo(cargo: str):
 def obtener_todos_empleados():
     try:
         with conexion.cursor() as cursor:
-            sql_empleados = "SELECT cedula, nombre, rol, cargo, email FROM empleados"
+            sql_empleados = "SELECT cedula, nombre, apellidos, rol, cargo, email FROM empleados"
             cursor.execute(sql_empleados)
             resultados_empleados = cursor.fetchall()
 
@@ -40,6 +40,7 @@ def obtener_todos_empleados():
                 Empleado(
                     cedula=empleado["cedula"],
                     nombre=empleado["nombre"],
+                    apellidos=empleado["apellidos"],
                     rol=empleado["rol"],
                     cargo=empleado["cargo"],
                     email=empleado["email"],

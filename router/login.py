@@ -68,11 +68,12 @@ def get_user_current( token: str = Depends(oauth2_scheme)):
         if username == None:
             raise HTTPException(status_code=401, detail="Credenciales invalidas", headers={"WWW-authenticate": "Bearer"})
         with conexion.cursor() as cursor:
-            sql_empleados = "SELECT cedula, nombre, rol, cargo, contraseña FROM empleados WHERE cedula = %s"
+            sql_empleados = "SELECT cedula, nombre, apellidos, rol, cargo, contraseña FROM empleados WHERE cedula = %s"
             cursor.execute(sql_empleados, (username,))
             empleadoRes = cursor.fetchone()
             empleado = { 'cedula': empleadoRes['cedula'],
                           'nombre': empleadoRes['nombre'], 
+                          'apellidos': empleadoRes['apellidos'],
                           'rol': empleadoRes['rol'], 
                           'cargo': empleadoRes['cargo'], 
                           'contraseña': empleadoRes['contraseña']}
@@ -131,12 +132,12 @@ async def create_empleado(empleado_data: Empleado):
                 raise HTTPException(status_code=409, detail="Employee with this cedula already exists.")
 
             # Insert new employee into the database
-            sql_insert = "INSERT INTO empleados (cedula, nombre, rol, cargo, email, contraseña) VALUES (%s, %s, %s, %s, %s, %s)"
-            cursor.execute(sql_insert, (empleado_data.cedula, empleado_data.nombre, empleado_data.rol, empleado_data.cargo, empleado_data.email, empleado_data.contraseña))
+            sql_insert = "INSERT INTO empleados (cedula, nombre, apellidos, rol, cargo, email, contraseña) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+            cursor.execute(sql_insert, (empleado_data.cedula, empleado_data.nombre, empleado_data.apellidos, empleado_data.rol, empleado_data.cargo, empleado_data.email, empleado_data.contraseña))
             conexion.commit()
 
             # Retrieve the newly created employee for response
-            sql_get_created = "SELECT cedula, nombre, rol, cargo, email, contraseña FROM empleados WHERE cedula = %s"
+            sql_get_created = "SELECT cedula, nombre, apellidos, rol, cargo, email, contraseña FROM empleados WHERE cedula = %s"
             cursor.execute(sql_get_created, (empleado_data.cedula,))
             created_empleado = cursor.fetchone()
 

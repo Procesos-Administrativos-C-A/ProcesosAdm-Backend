@@ -8,3 +8,4 @@ class Preoperativo(BaseModel):
     turno: str
     lugar: str
     festivo: Boolean
+    horas_extra: Boolean
