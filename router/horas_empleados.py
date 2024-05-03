@@ -47,8 +47,64 @@ async def consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Que
             # Agregar la información del total de horas para cada empleado
             for empleado in consolidado_horas:
                 empleado['total_horas'] = sum(empleado[key] for key in ['horas_diurnas_ord', 'horas_diurnas_fest', 'horas_nocturnas', 'horas_nocturnas_fest', 'horas_extras'])
-            
+   
             return consolidado_horas
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+#Generar horas empleado
+@horas_empleados_router.get("/asistencia_horas/")
+async def consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Query(...), lista_cedulas: str = Query(...)):
+    cedulas = lista_cedulas.split(',')
+    try:
+        with conexion.cursor() as cursor:
+            # Consulta SQL para obtener el consolidado de horas por empleado en el rango de fechas
+            sql = """
+                SELECT e.nombre, e.apellidos, e.cedula, he.fecha,
+                    SUM(he.horas_diurnas_ord) AS horas_diurnas_ord,
+                    SUM(he.horas_diurnas_fest) AS horas_diurnas_fest,
+                    SUM(he.horas_nocturnas) AS horas_nocturnas,
+                    SUM(he.horas_nocturnas_fest) AS horas_nocturnas_fest,
+                    SUM(he.horas_extras) AS horas_extras,
+                    SUM(he.horas_diurnas_ord + he.horas_diurnas_fest + he.horas_nocturnas + he.horas_nocturnas_fest + he.horas_extras) AS total_horas,
+                    p.turno AS turno
+                FROM empleados e
+                INNER JOIN horas_empleados he ON e.cedula = he.cedula
+                INNER JOIN preoperativos p ON he.id_preoperativo = p.id
+                WHERE he.fecha BETWEEN %s AND %s AND e.cedula IN ({})
+                GROUP BY he.fecha, e.cedula, p.turno
+            """.format(','.join(['%s']*len(cedulas)))
+            cursor.execute(sql, (fecha_inicio, fecha_fin) + tuple(cedulas))
+            consolidado_horas = cursor.fetchall()
+            
+            # Agregar la información del total de horas para cada empleado
+            for empleado in consolidado_horas:
+                empleado['total_horas'] = sum(empleado[key] for key in ['horas_diurnas_ord', 'horas_diurnas_fest', 'horas_nocturnas', 'horas_nocturnas_fest', 'horas_extras'])
+            
+            resultados = {}
+
+            for registro in consolidado_horas:
+                clave = (registro["nombre"], registro["apellidos"], registro["cedula"])
+                if clave not in resultados:
+                    resultados[clave] = {
+                        "nombre": registro["nombre"],
+                        "apellidos": registro["apellidos"],
+                        "cedula": registro["cedula"],
+                        "horas": []
+                    }
+                horas_dia = {
+                    "fecha": registro["fecha"],
+                    "turno": registro["turno"],
+                    "horas_diurnas_ord": registro["horas_diurnas_ord"],
+                    "horas_diurnas_fest": registro["horas_diurnas_fest"],
+                    "horas_nocturnas": registro["horas_nocturnas"],
+                    "horas_nocturnas_fest": registro["horas_nocturnas_fest"],
+                    "horas_extras": registro["horas_extras"],
+                    "total_horas": registro["total_horas"]
+                }
+                resultados[clave]["horas"].append(horas_dia)
+            
+            return list(resultados.values())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

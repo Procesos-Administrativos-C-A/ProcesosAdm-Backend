@@ -44,6 +44,7 @@ def crear_registro(preoperativo: Preoperativo, empleados_preoperativos: List[Emp
         # Crear un diccionario con los datos relevantes del preoperativo y empleados preoperativos
         datos_preoperativos = {
             "fecha": preoperativo.fecha,
+            "id_preoperativo": id_preoperativo,
             "empleados_preoperativos": [
                 {
                     "cedula": empleado.cedula,
@@ -116,8 +117,8 @@ def insertar_horas_empleados(datos_preoperativos, festivo, turno):
                 fecha = datos_preoperativos["fecha"]
 
                 # Insertar en la tabla horas_empleados
-                sql_horas_empleados = "INSERT INTO horas_empleados (cedula, horas_diurnas_ord, horas_diurnas_fest, horas_nocturnas, horas_nocturnas_fest, horas_extras, fecha) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(sql_horas_empleados, (empleado["cedula"], horas_diurnas_ord, horas_diurnas_fest, horas_nocturnas, horas_nocturnas_fest, horas_extras, fecha))
+                sql_horas_empleados = "INSERT INTO horas_empleados (id_preoperativo, cedula, horas_diurnas_ord, horas_diurnas_fest, horas_nocturnas, horas_nocturnas_fest, horas_extras, fecha) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+                cursor.execute(sql_horas_empleados, (datos_preoperativos['id_preoperativo'],empleado["cedula"], horas_diurnas_ord, horas_diurnas_fest, horas_nocturnas, horas_nocturnas_fest, horas_extras, fecha))
                 conexion.commit()
     except Exception as e:
         print("Error al insertar en la tabla horas_empleados:", str(e))
