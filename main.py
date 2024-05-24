@@ -8,6 +8,7 @@ from router.preoperativo import preoperativos
 from router.login import login_router
 from router.empleado import empleados
 from router.horas_empleados import horas_empleados_router
+from router.certificados_laborales import certificados_laborales_routes
 
 app = FastAPI()
 
@@ -28,7 +29,7 @@ app.include_router(preoperativos, prefix='/preoperativos')
 app.include_router(login_router, prefix='/login')
 app.include_router(empleados, prefix="/empleados")
 app.include_router(horas_empleados_router, prefix="/horas_empleados")
-
+app.include_router(certificados_laborales_routes, prefix="/certificados_laborales")
 
 
 @app.get("/")
