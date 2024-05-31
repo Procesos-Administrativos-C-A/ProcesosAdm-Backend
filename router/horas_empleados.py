@@ -10,9 +10,10 @@ from fastapi import Query
 #PDF
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph
 from reportlab.lib import colors
 from fastapi.responses import FileResponse
+from reportlab.lib.styles import getSampleStyleSheet
 
 #Excel
 import pandas as pd
@@ -108,7 +109,7 @@ async def consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Que
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-#generar pdf
+# Define el endpoint para generar el PDF consolidado de horas
 @horas_empleados_router.get("/generar_pdf_consolidado_horas/")
 async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Query(...)):
     try:
@@ -135,6 +136,17 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
             # Creación del PDF en orientación vertical
             doc = SimpleDocTemplate(pdf_name, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
             elements = []
+
+            # Estilos para el título
+            styles = getSampleStyleSheet()
+            title_style = styles['Title']
+            
+            # Título del documento
+            titulo = f"Consolidado de horas para el rango de fechas del {fecha_inicio} al {fecha_fin}"
+            elements.append(Paragraph(titulo, title_style))
+
+            # Espacio después del título
+            elements.append(Paragraph("<br/><br/>", styles['Normal']))
             
             # Cabecera de la tabla
             table_data = [
@@ -144,7 +156,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
             # Agregar datos a la tabla
             for empleado in consolidado_horas:
                 table_data.append([
-                    empleado['nombre_completo'],  # Cambio de la columna 'nombre' a 'nombre_completo'
+                    empleado['nombre_completo'],
                     empleado['cedula'],
                     empleado['horas_diurnas_ord'],
                     empleado['horas_diurnas_fest'],
@@ -162,14 +174,14 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
                 ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('FONTSIZE', (0, 0), (-1, -1), 8),  # Tamaño de fuente reducido
-                ('LEADING', (0, 0), (-1, -1), 6),    # Espaciado entre filas reducido
+                ('FONTSIZE', (0, 0), (-1, -1), 8),
+                ('LEADING', (0, 0), (-1, -1), 6),
             ]))
             
             # Agregar la tabla al documento
             elements.append(table)
             
-            # Agregar salto de página
+            # Agregar salto de página (si es necesario)
             elements.append(PageBreak())
             
             # Generar el PDF
