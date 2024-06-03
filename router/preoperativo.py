@@ -251,6 +251,65 @@ def obtener_registros():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+#Acceder al ultimo preoperativo que creo una persona 
+@preoperativos.get("/ultimo_preoperativo/{cedula}", response_model=dict)
+def obtener_ultimo_preoperativo(cedula: str):
+    try:
+        with conexion.cursor() as cursor:
+            # Obtener el nombre de la persona asociada a la cédula
+            sql_nombre_empleado = """
+                SELECT nombre, apellidos
+                FROM empleados
+                WHERE cedula = %s
+            """
+            cursor.execute(sql_nombre_empleado, (cedula,))
+            empleado = cursor.fetchone()
+
+            if empleado is None:
+                raise HTTPException(status_code=404, detail="No se encontró ningún empleado para la cédula proporcionada")
+
+            nombre_completo = f"{empleado['nombre']} {empleado['apellidos']}"
+
+            # Obtener el último preoperativo donde el encargado es la persona encontrada
+            sql_ultimo_preoperativo = """
+                SELECT p.* 
+                FROM preoperativos p
+                WHERE p.encargado = %s
+                ORDER BY p.fecha DESC
+                LIMIT 1
+            """
+            cursor.execute(sql_ultimo_preoperativo, (nombre_completo,))
+            resultado_preoperativo = cursor.fetchone()
+
+            if resultado_preoperativo is None:
+                raise HTTPException(status_code=404, detail="No se encontró ningún preoperativo para el encargado proporcionado")
+
+            preoperativo = dict(resultado_preoperativo)
+
+            # Obtener los empleados asociados a este preoperativo
+            sql_empleados = """
+                SELECT ep.cedula, ep.horas_adicionales, ep.estacion, e.nombre, e.apellidos, e.cargo
+                FROM empleados_preoperativos ep
+                JOIN empleados e ON ep.cedula = e.cedula
+                WHERE ep.id_preoperativo = %s
+            """
+            cursor.execute(sql_empleados, (preoperativo['id'],))
+            empleados = cursor.fetchall()
+
+            preoperativo["horas_extra"] = 0
+            for empleado in empleados:
+                if empleado["horas_adicionales"] > 0:
+                    preoperativo["horas_extra"] = 1
+                    break
+
+            preoperativo['empleados_preoperativos'] = empleados
+
+            return preoperativo
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+
 # Función para obtener un registro de preoperativo por su ID junto con sus empleados preoperativos
 @preoperativos.get("/preoperativos_por_id/{id}", response_model=dict)
 def obtener_preoperativos_por_id(id: int):
@@ -293,25 +352,58 @@ def obtener_preoperativos_por_id(id: int):
 def actualizar_registro(id: int, preoperativo: Preoperativo, empleados_preoperativos: List[EmpleadoPreoperativo]):
     try:
         with conexion.cursor() as cursor:
-            # Actualizar en la tabla preoperativos
-            sql_preoperativo = "UPDATE preoperativos SET fecha = %s, encargado = %s, turno = %s, lugar = %s, festivo = %s, horas_extra = %s WHERE id = %s"
-            cursor.execute(sql_preoperativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo, preoperativo.horas_extra, id))
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
             conexion.commit()
 
+            # Eliminar registros de la tabla horas_empleados
+            sql_delete_horas_empleados = "DELETE FROM horas_empleados WHERE id_preoperativo = %s"
+            cursor.execute(sql_delete_horas_empleados, (id,))
+            conexion.commit()
+        
             # Eliminar empleados preoperativos existentes para este registro
             sql_delete_empleados = "DELETE FROM empleados_preoperativos WHERE id_preoperativo = %s"
             cursor.execute(sql_delete_empleados, (id,))
             conexion.commit()
-
+            
+            # Actualizar en la tabla preoperativos
+            sql_preoperativo = "UPDATE preoperativos SET fecha = %s, encargado = %s, turno = %s, lugar = %s, festivo = %s, horas_extra = %s WHERE id = %s"
+            cursor.execute(sql_preoperativo, (preoperativo.fecha, preoperativo.encargado, preoperativo.turno, preoperativo.lugar, preoperativo.festivo, preoperativo.horas_extra, id))
+            conexion.commit()
+            
+            
             # Insertar empleados preoperativos actualizados
             for empleado in empleados_preoperativos:
                 sql_empleado = "INSERT INTO empleados_preoperativos (id_preoperativo, cedula, horas_diarias, horas_adicionales, estacion) VALUES (%s, %s, %s, %s, %s)"
                 cursor.execute(sql_empleado, (id, empleado.cedula, empleado.horas_diarias, empleado.horas_adicionales, empleado.estacion))
                 conexion.commit()
 
+            datos_preoperativos = {
+                "fecha": preoperativo.fecha,
+                "id_preoperativo": id,
+                "empleados_preoperativos": [
+                    {
+                        "cedula": empleado.cedula,
+                        "horas_diarias": empleado.horas_diarias,
+                        "horas_adicionales": empleado.horas_adicionales,
+                        "estacion": empleado.estacion
+                    } for empleado in empleados_preoperativos
+                ]
+            }
+
+            # Insertar nuevos registros en la tabla horas_empleados
+            insertar_horas_empleados(datos_preoperativos, preoperativo.festivo, preoperativo.turno)
+
+            # Volver a habilitar las restricciones de clave externa
+            cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
+            conexion.commit()
+
             return preoperativo
     except Exception as e:
+        # Volver a habilitar las restricciones de clave externa
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
+        conexion.commit()
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # Función para eliminar un registro de preoperativo por su ID junto con sus empleados preoperativos
 @preoperativos.delete("/deletePreoperativos/{id}", response_model=dict)
