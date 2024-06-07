@@ -155,7 +155,7 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-#generar pdf por fecha
+#generar pdf por fecha para preoperativos
 @preoperativos.get("/generar_pdf_preoperativos_fecha/")
 def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
     try:

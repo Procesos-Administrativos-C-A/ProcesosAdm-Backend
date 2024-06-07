@@ -21,8 +21,7 @@ import os
 
 certificados_laborales_routes = APIRouter()
 
-import requests
-from fastapi import HTTPException
+
 
 # Función para limpiar la respuesta eliminando los caracteres especiales al inicio y al final
 def limpiar_respuesta(respuesta: str) -> str:
@@ -35,6 +34,10 @@ def limpiar_respuesta(respuesta: str) -> str:
 # Función para formatear las fechas que llegan desde la api
 def formatear_fecha(fecha: str) -> str:
     return f"{fecha[:4]}-{fecha[4:6]}-{fecha[6:]}"
+
+# Función para formatear el sueldo
+def formatear_sueldo(sueldo: str) -> str:
+    return "{:,}".format(int(sueldo)).replace(",", ".")
 
 # Ruta para obtener certificados laborales por cédula
 @certificados_laborales_routes.get("/certificados_laborales/{cedula}")
@@ -66,12 +69,16 @@ def obtener_certificado_laboral(cedula: str):
                 certificado_laboral = {
                     "codigo": empleado["CODIGO"].strip(),
                     "nombre": empleado["NOMBRE"].strip(),
+                    "nombre2": empleado["NOMBRE2"].strip(),
                     "apellidos": empleado["APELLI"].strip(),
+                    "apellidos2": empleado["APELLI2"].strip(),
                     "cedula": empleado["CEDULA"].strip(),
                     "cargo": empleado["CARGOS"].strip(),
-                    "sueldo": empleado["SUELDO"],
+                    "sueldo": formatear_sueldo(empleado["SUELDO"]),
                     "fecha_inicio_contrato": formatear_fecha(empleado["CONTRAINI"]),
-                    "fecha_fin_contrato": formatear_fecha(empleado["CONTRAFIN"])
+                    "fecha_fin_contrato": formatear_fecha(empleado["CONTRAFIN"]),
+                    "tipo_contrato": empleado["TIPOCONT"],
+                    "nombre_contrato": empleado["NOMCONT"].strip()
                 }
                 
                 return certificado_laboral
@@ -109,7 +116,7 @@ def generar_certificado_laboral(cedula: str):
         
         elements.append(Spacer(1, 0.25*inch))
         
-        titulo = Paragraph("EL AREA DE RECURSOS HUMANOS DE LA ASOCIACION CABLE AEREO MANIZALES Nit. 900.315.506-2", 
+        titulo = Paragraph("EL ÁREA DE RECURSOS HUMANOS DE LA ASOCIACION CABLE AÉREO MANIZALES Nit. 900.315.506-2", 
                            ParagraphStyle(name="Titulo", fontSize=16, leading=20, alignment=TA_CENTER, spaceAfter=20, fontName="Helvetica-Bold"))
         elements.append(titulo)
         
@@ -117,17 +124,27 @@ def generar_certificado_laboral(cedula: str):
                               ParagraphStyle(name="Subtitulo", fontSize=14, leading=18, alignment=TA_CENTER, spaceAfter=20, fontName="Helvetica-Bold"))
         elements.append(subtitulo)
         
-        texto_certificado = f"""Que, {certificado_laboral['nombre']} {certificado_laboral['apellidos']}, 
-        con C.C. {certificado_laboral['cedula']}, labora en la Asociación Cable Aéreo Manizales, 
-        iniciando vinculación laboral el {certificado_laboral['fecha_inicio_contrato']}. 
-        Actualmente desempeña el cargo de {certificado_laboral['cargo']} y una asignación salarial de $ {certificado_laboral['sueldo']}. 
-        """
+        # Seleccionar el formato de texto según el tipo de contrato (a termino indefinido)
+        if certificado_laboral["tipo_contrato"] == "02":
+            texto_certificado = f"""Que, <b>{certificado_laboral['nombre']} {certificado_laboral['nombre2']} {certificado_laboral['apellidos']} {certificado_laboral['apellidos2']}</b>, 
+            con C.C. <b>{certificado_laboral['cedula']}</b>, labora en la <b>ASOCIACIÓN CABLE AÉREO MANIZALES</b> con un <b>{certificado_laboral['nombre_contrato']}</b> 
+            iniciando vinculación laboral el <b>{certificado_laboral['fecha_inicio_contrato']}</b>.
+            Actualmente desempeña el cargo de <b>{certificado_laboral['cargo']}</b> con una asignación salarial de 
+            <b>$ {certificado_laboral['sueldo']}</b>
+            """
+        else:  # Asumimos que el otro tipo de contrato es "01"
+            texto_certificado = f"""Que, <b>{certificado_laboral['nombre']} {certificado_laboral['nombre2']} {certificado_laboral['apellidos']} {certificado_laboral['apellidos2']}</b>, 
+            con C.C. <b>{certificado_laboral['cedula']}</b>, labora en la <b>ASOCIACIÓN CABLE AÉREO MANIZALES</b> con un <b>{certificado_laboral['nombre_contrato']}</b> 
+            iniciando vinculación laboral el <b>{certificado_laboral['fecha_inicio_contrato']}</b> y con fecha de finalización <b>{certificado_laboral['fecha_fin_contrato']}</b>.
+            Actualmente desempeña el cargo de <b>{certificado_laboral['cargo']}</b> con una asignación salarial de 
+            <b>$ {certificado_laboral['sueldo']}</b>
+            """
         
         cuerpo = Paragraph(texto_certificado, ParagraphStyle(name="Cuerpo", fontSize=12, leading=15))
         elements.append(cuerpo)
         
         # Espacio después del cuerpo del texto
-        elements.append(Spacer(1, 0.5*inch))
+        elements.append(Spacer(1, 0.3*inch))
         
         # Texto final "Dado en Manizales – Caldas el {fecha actual}"
         fecha_actual = datetime.now().strftime("%Y-%m-%d")
@@ -136,7 +153,7 @@ def generar_certificado_laboral(cedula: str):
         elements.append(dado_en_paragraph)
         
         # Espacio antes de la firma
-        elements.append(Spacer(1, 0.6*inch))
+        elements.append(Spacer(1, 0.54*inch))
         
         # Ruta absoluta de la imagen de la firma
         firma_path = os.path.join(os.path.dirname(__file__), '../image/firma_talento_humano.png')
@@ -159,7 +176,7 @@ def generar_certificado_laboral(cedula: str):
         elements.append(firma_paragraph)
         
         # Espacio después del cuerpo del texto
-        elements.append(Spacer(1, 0.6*inch))
+        elements.append(Spacer(1, 0.5*inch))
 
         # Agregar texto final centrado
         texto_final = """
