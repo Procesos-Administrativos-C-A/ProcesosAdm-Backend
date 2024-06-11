@@ -159,3 +159,5 @@ def obtener_empleados_contrato_proximo():
     except Exception as e:
         # Manejo de errores
         raise HTTPException(status_code=500, detail=str(e))
+
+"Se deba documentado la funcionalidad de notificar a los empleados caundo termina el contrato, se tiene una limitación de dos personas, ya que el api no da más"

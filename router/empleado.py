@@ -27,7 +27,7 @@ def obtener_nombres_empleados_por_cargo(cargo: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener los nombres de empleados: {str(e)}")
     
-
+#endpint para sacar una lista de empleados solicitada
 @empleados.get("/getEmpleados", response_model=EmpleadosList)
 def obtener_todos_empleados():
     try:
