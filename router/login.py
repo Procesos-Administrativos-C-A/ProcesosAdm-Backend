@@ -121,13 +121,11 @@ async def create_empleado(empleado_data: Empleado):
 
         # Hash the password before storing it
         empleado_data.contraseña = pwt_context.hash(empleado_data.contraseña)
-
         with conexion.cursor() as cursor:
             # Check for existing employee with the same cedula
             sql_check_exist = "SELECT cedula FROM empleados WHERE cedula = %s"
             cursor.execute(sql_check_exist, (empleado_data.cedula,))
             existing_user = cursor.fetchone()
-
             if existing_user:
                 raise HTTPException(status_code=409, detail="Employee with this cedula already exists.")
 
@@ -135,17 +133,14 @@ async def create_empleado(empleado_data: Empleado):
             sql_insert = "INSERT INTO empleados (cedula, nombre, apellidos, rol, cargo, email, contraseña) VALUES (%s, %s, %s, %s, %s, %s, %s)"
             cursor.execute(sql_insert, (empleado_data.cedula, empleado_data.nombre, empleado_data.apellidos, empleado_data.rol, empleado_data.cargo, empleado_data.email, empleado_data.contraseña))
             conexion.commit()
-
             # Retrieve the newly created employee for response
             sql_get_created = "SELECT cedula, nombre, apellidos, rol, cargo, email, contraseña FROM empleados WHERE cedula = %s"
             cursor.execute(sql_get_created, (empleado_data.cedula,))
             created_empleado = cursor.fetchone()
-
             if created_empleado:
                 return Empleado(**created_empleado)
             else:
                 raise HTTPException(status_code=500, detail="Employee creation failed (no record found).")
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating employee: {str(e)}")
 
