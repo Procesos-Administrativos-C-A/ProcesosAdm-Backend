@@ -155,8 +155,8 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-#generar pdf por fecha para preoperativos
-@preoperativos.get("/generar_pdf_preoperativos_fecha/")
+# Define el endpoint para generar el PDF de preoperativos por fecha
+@preoperativos_router.get("/generar_pdf_preoperativos_fecha/")
 def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
     try:
         # Llama a la función de obtener preoperativos por fecha para obtener los datos necesarios
@@ -165,13 +165,20 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
         # Obtiene la fecha actual en el formato deseado para el nombre del archivo
         fecha_actual = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Inicializa el lienzo del PDF con un nombre único basado en la fecha, turno y lugar
+        # Inicializa el lienzo del PDF con un nombre único basado en la fecha
         pdf_name = f"preoperativos_{fecha_actual}.pdf"
         doc = SimpleDocTemplate(pdf_name, pagesize=letter)
         styles = getSampleStyleSheet()
         
         # Crea una lista de elementos para agregar al PDF
         pdf_elements = []
+
+        # Título del documento
+        titulo = f"Preoperativos de la {fecha}"
+        pdf_elements.append(Paragraph(titulo, styles['Title']))
+        
+        # Espacio después del título
+        pdf_elements.append(Spacer(1, 12))
         
         # Itera sobre cada preoperativo y agrega sus detalles al PDF
         for preoperativo in preoperativos:

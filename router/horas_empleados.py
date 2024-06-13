@@ -10,7 +10,7 @@ from fastapi import Query
 #PDF
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph, Spacer
 from reportlab.lib import colors
 from fastapi.responses import FileResponse
 from reportlab.lib.styles import getSampleStyleSheet
@@ -109,7 +109,7 @@ async def consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Que
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-# Define el endpoint para generar el PDF consolidado de horas
+#Define el endpoint para generar el PDF consolidado de horas
 @horas_empleados_router.get("/generar_pdf_consolidado_horas/")
 async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fin: str = Query(...)):
     try:
@@ -142,11 +142,11 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
             title_style = styles['Title']
             
             # Título del documento
-            titulo = f"Consolidado de horas para el rango de fechas del {fecha_inicio} al {fecha_fin}"
+            titulo = f"Consolidado de horas mes para el rango de fechas {fecha_inicio} a {fecha_fin}"
             elements.append(Paragraph(titulo, title_style))
 
             # Espacio después del título
-            elements.append(Paragraph("<br/><br/>", styles['Normal']))
+            elements.append(Spacer(1, 12))
             
             # Cabecera de la tabla
             table_data = [
