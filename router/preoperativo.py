@@ -174,7 +174,7 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
         pdf_elements = []
 
         # Título del documento
-        titulo = f"Preoperativos de la {fecha}"
+        titulo = f"Preoperativos de la fecha {fecha}"
         pdf_elements.append(Paragraph(titulo, styles['Title']))
         
         # Espacio después del título
@@ -197,7 +197,7 @@ def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
             pdf_elements.append(Paragraph(f"<b>Festivo:</b> {festivo}", styles["Normal"]))
             
             # Agrega una tabla para los empleados preoperativos
-            table_data = [["Nombre", "Cedula", "Horas Diarias", "Horas Adicionales", "Estacion"]]
+            table_data = [["Nombre", "Cédula", "Horas Diarias", "Horas Adicionales", "Estación"]]
             for empleado in preoperativo['empleados_preoperativos']:
                 # Obtiene el nombre del empleado desde el diccionario de empleados
                 nombre_empleado = empleado.get('nombre', 'Nombre no disponible')

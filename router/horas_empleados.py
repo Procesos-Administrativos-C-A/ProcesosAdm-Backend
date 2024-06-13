@@ -150,7 +150,7 @@ async def generar_pdf_consolidado_horas(fecha_inicio: str = Query(...), fecha_fi
             
             # Cabecera de la tabla
             table_data = [
-                ["Nombre", "Cedula", "Horas Diurnas Ord", "Horas Diurnas Fest", "Horas Nocturnas", "Horas Nocturnas Fest", "Horas Extras"]
+                ["Nombre", "Cédula", "Horas Diurnas Ord", "Horas Diurnas Fest", "Horas Nocturnas", "Horas Nocturnas Fest", "Horas Extras"]
             ]
             
             # Agregar datos a la tabla
