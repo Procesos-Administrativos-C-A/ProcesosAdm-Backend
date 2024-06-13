@@ -156,7 +156,7 @@ def obtener_preoperativos_por_fecha(fecha: str = Query(...)): #Query(...) es usa
         raise HTTPException(status_code=500, detail=str(e))
 
 # Define el endpoint para generar el PDF de preoperativos por fecha
-@preoperativos_router.get("/generar_pdf_preoperativos_fecha/")
+@preoperativos.get("/generar_pdf_preoperativos_fecha/")
 def generar_pdf_preoperativos_fecha(fecha: str = Query(...)):
     try:
         # Llama a la función de obtener preoperativos por fecha para obtener los datos necesarios
